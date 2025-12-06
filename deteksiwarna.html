@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deteksi Warna Kamera</title>
+
+<style>
+    body{
+        margin:0;
+        font-family: Arial, sans-serif;
+        background:#0f172a;
+        color:#fff;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        padding:20px;
+    }
+
+    h2{
+        margin-top:10px;
+        font-weight:600;
+        letter-spacing:1px;
+    }
+
+    .container{
+        background:#1e293b;
+        padding:20px;
+        border-radius:16px;
+        box-shadow:0 0 20px #0005;
+        width:90%;
+        max-width:450px;
+        text-align:center;
+    }
+
+    #video{
+        width:100%;
+        border-radius:12px;
+        margin-top:10px;
+    }
+
+    .btn{
+        padding:12px 22px;
+        background:#3b82f6;
+        border:none;
+        border-radius:10px;
+        color:white;
+        font-size:16px;
+        cursor:pointer;
+        transition:0.3s;
+        margin-top:10px;
+    }
+    .btn:hover{
+        background:#2563eb;
+    }
+
+    .color-box{
+        width:80px;
+        height:80px;
+        border-radius:12px;
+        margin:10px auto;
+        border:2px solid #fff3;
+    }
+
+    .info-box{
+        background:#0f172a;
+        padding:10px;
+        border-radius:10px;
+        margin-top:10px;
+    }
+
+    /* Titik deteksi tetap di tengah */
+    .dot{
+        position:absolute;
+        width:14px;
+        height:14px;
+        background:red;
+        border-radius:50%;
+        left:50%;
+        top:50%;
+        transform:translate(-50%, -50%);
+        border:2px solid #fff;
+        pointer-events:none;
+    }
+
+    .video-wrapper{
+        position:relative;
+        display:inline-block;
+        width:100%;
+    }
+</style>
+</head>
+
+<body>
+
+<h2>Deteksi Warna Kamera</h2>
+
+<div class="container">
+
+    <button class="btn" id="toggleBtn">🎥 Nyalakan Kamera</button>
+
+    <div class="video-wrapper">
+        <video id="video" autoplay playsinline></video>
+        <div class="dot"></div>
+    </div>
+
+    <div class="info-box">
+        <h3>Warna Terdeteksi</h3>
+        <div class="color-box" id="colorBox"></div>
+
+        <p id="rgbText">R:0 G:0 B:0</p>
+        <p id="hexText">HEX: #000000</p>
+    </div>
+
+</div>
+
+<canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+
+<script>
+let video = document.getElementById("video");
+let canvas = document.getElementById("canvas");
+let ctx = canvas.getContext("2d");
+let toggleBtn = document.getElementById("toggleBtn");
+let stream = null;
+let cameraOn = false;
+
+async function startCamera(){
+    try{
+        stream = await navigator.mediaDevices.getUserMedia({ video:true });
+        video.srcObject = stream;
+        cameraOn = true;
+        toggleBtn.textContent = "🔴 Matikan Kamera";
+    } catch(err){
+        alert("Gagal mengakses kamera: " + err);
+    }
+}
+
+function stopCamera(){
+    if(stream){
+        stream.getTracks().forEach(track => track.stop());
+    }
+    video.srcObject = null;
+    cameraOn = false;
+    toggleBtn.textContent = "🎥 Nyalakan Kamera";
+}
+
+toggleBtn.onclick = () => {
+    if(cameraOn){
+        stopCamera();
+    } else {
+        startCamera();
+    }
+};
+
+function getColor(){
+    if(!cameraOn) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // ambil titik tengah
+    let x = canvas.width / 2;
+    let y = canvas.height / 2;
+
+    let pixel = ctx.getImageData(x, y, 1, 1).data;
+    let r=pixel[0], g=pixel[1], b=pixel[2];
+
+    // tampilkan warna
+    document.getElementById("rgbText").textContent = `R:${r} G:${g} B:${b}`;
+    let hex = "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    document.getElementById("hexText").textContent = "HEX: " + hex;
+    document.getElementById("colorBox").style.background = hex;
+
+    requestAnimationFrame(getColor);
+}
+
+requestAnimationFrame(getColor);
+</script>
+
+</body>
+</html>
